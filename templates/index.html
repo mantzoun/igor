@@ -99,7 +99,7 @@
       {% endif %}
     </aside>
 
-    <aside class="log-pane" style="grid-column: span 4;">
+    <aside class="log-pane" style="grid-column: span 3;">
       <h2>Command log</h2>
       <pre id="log-box" class="preview-box" style="max-height: 320px; overflow: auto; white-space: pre-wrap;">
         {% if log_items %}{{ log_items | join("\n") }}{% else %}No log entries yet.{% endif %}

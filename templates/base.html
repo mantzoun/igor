@@ -13,15 +13,29 @@
     .button-row { margin-top: 18px; }
     button { padding: 10px 16px; background: #0366d6; color: #fff; border: none; cursor: pointer; }
     button:hover { background: #024c9f; }
-    input[type="text"], select, textarea { width: 100%; max-width: 100%; padding: 8px; margin-top: 4px; }
+    input, select, textarea { width: 100%; max-width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
     fieldset { margin-bottom: 20px; padding: 18px; border: 1px solid #ccc; }
     label { display: block; margin-bottom: 10px; }
     .message { color: #006600; margin-bottom: 14px; }
     .error { color: #b00020; margin-bottom: 14px; }
     .small-note { font-size: 0.95rem; color: #333; }
-    .app-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px 320px 320px; gap: 24px; align-items: start; }
+    /* Mobile First: Stacks all blocks vertically into a single column */
+    .app-grid { display: grid; grid-template-columns: 1fr; gap: 24px; align-items: start; width: 100%; }
+    /* force EVERY pane to occupy just their single column naturally */
+    .main-pane, .sidebar, .preview-pane, .status-pane, .queue-pane, .log-pane {
+      grid-column: 1;
+      width: 100%;
+    }
+    /* Desktop: Switches to the 3-column layout only when the screen is wide enough */
+    @media (min-width: 1024px) {
+      .app-grid { grid-template-columns: 320px 320px 320px; }
+      .main-pane, .sidebar, .preview-pane, .status-pane, .queue-pane, .log-pane {
+        grid-column: auto;
+      }
+      .log-pane { grid-column: span 3 !important ; }
+    }
     .output-box { white-space: pre-wrap; background: #f6f8fa; border: 1px solid #ddd; padding: 12px; margin-top: 10px; }
-    .sidebar, .preview-pane, .status-pane, .queue-pane, .log-pane { border: 1px solid #ccc; padding: 18px; background: #fff; }
+    .main-pane, .sidebar, .preview-pane, .status-pane, .queue-pane, .log-pane { border: 1px solid #ccc; padding: 18px; background: #fff; max-height: 600px; overflow-y: auto; box-sizing: border-box;}
     .sidebar h2, .preview-pane h2, .status-pane h2, .queue-pane h2, .log-pane h2 { margin-top: 0; }
     .media-file { display: block; margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
     .media-file:hover { background: #f6f8fa; }
