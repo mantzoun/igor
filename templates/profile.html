@@ -63,6 +63,10 @@
         <input type="text" name="movflags" id="profile-movflags" value="{{ current_profile.movflags }}" placeholder="e.g. +faststart" />
       </label>
       <label>
+        CPU used (0-8)
+        <input type="number" name="cpu_used" id="profile-cpu-used" value="{{ current_profile.cpu_used }}" min="0" max="8" />
+      </label>
+      <label>
         Other input options
         <input type="text" name="other_input_options" id="profile-other-input-options" value="{{ current_profile.other_input_options }}" />
       </label>
@@ -93,6 +97,7 @@
         document.getElementById('profile-audio').value = 'copy';
         document.getElementById('profile-preset').value = 'medium';
         document.getElementById('profile-movflags').value = '';
+        document.getElementById('profile-cpu-used').value = '0';
         document.getElementById('profile-other-input-options').value = '';
         document.getElementById('profile-other-output-options').value = '';
         return;
@@ -112,6 +117,7 @@
           document.getElementById('profile-audio').value = data.audio || 'copy';
           document.getElementById('profile-preset').value = data.preset || 'medium';
           document.getElementById('profile-movflags').value = data.movflags || '';
+          document.getElementById('profile-cpu-used').value = (typeof data.cpu_used !== 'undefined') ? data.cpu_used : '0';
           document.getElementById('profile-other-input-options').value = data.other_input_options || '';
           document.getElementById('profile-other-output-options').value = data.other_output_options || '';
         })

@@ -16,8 +16,15 @@ import json
 import re
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-SETTINGS_FILE = os.path.join(BASE_DIR, "settings.json")
-PROFILE_GLOB = os.path.join(BASE_DIR, "profile_*.json")
+CONFIG_DIR = os.path.abspath("/config")
+# Ensure config dir exists (ignore errors if not allowed)
+try:
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+except Exception:
+    pass
+
+SETTINGS_FILE = os.path.join(CONFIG_DIR, "settings.json")
+PROFILE_GLOB = os.path.join(CONFIG_DIR, "profile_*.json")
 
 DEFAULT_SETTINGS = {
     "port": 5000,
@@ -35,6 +42,7 @@ DEFAULT_PROFILE = {
     "audio": "copy",
     "preset": "medium",
     "movflags": "",
+    "cpu_used": "0",
     "other_input_options": "",
     "other_output_options": "",
 }
@@ -165,14 +173,15 @@ def build_ffmpeg_task(selected_file, profile_file, nice_value, home_input_opts, 
         args.extend(shlex.split(profile.get("other_input_options")))
     args.extend(["-i", input_path])
     args.extend(["-c:v", vcodec])
+    # Encoder-specific options
+    if encoder in ("h264", "h265"):
+        crf = profile.get("crf")
+        if crf:
+            args.extend(["-crf", str(crf)])
 
-    crf = profile.get("crf")
-    if crf:
-        args.extend(["-crf", str(crf)])
-
-    preset = profile.get("preset")
-    if preset:
-        args.extend(["-preset", preset])
+        preset = profile.get("preset")
+        if preset:
+            args.extend(["-preset", preset])
 
     audio = profile.get("audio", "copy")
     if audio == "copy":
@@ -188,9 +197,19 @@ def build_ffmpeg_task(selected_file, profile_file, nice_value, home_input_opts, 
     if audio_bitrate and audio != "copy":
         args.extend(["-b:a", str(audio_bitrate)])
 
-    movflags = str(profile.get("movflags", "")).strip()
-    if movflags:
-        args.extend(["-movflags", movflags])
+        movflags = str(profile.get("movflags", "")).strip()
+        if movflags:
+            args.extend(["-movflags", movflags])
+    elif encoder == "av1":
+        # For AV1 (libaom-av1) use cpu-used instead of preset/crf/movflags
+        cpu_used_val = profile.get("cpu_used", "0")
+        try:
+            cpu_used_num = int(cpu_used_val)
+            if cpu_used_num < 0 or cpu_used_num > 8:
+                raise ValueError
+            args.extend(["-cpu-used", str(cpu_used_num)])
+        except Exception:
+            raise ValueError("cpu_used must be an integer between 0 and 8 for av1 profiles.")
 
     if profile.get("other_output_options"):
         args.extend(shlex.split(profile.get("other_output_options")))
@@ -374,7 +393,7 @@ def load_profile_file(profile_file):
         return None
     if not profile_file.startswith("profile_") or not profile_file.endswith(".json"):
         return None
-    path = os.path.join(BASE_DIR, profile_file)
+    path = os.path.join(CONFIG_DIR, profile_file)
     if not os.path.isfile(path):
         return None
     data = load_json(path)
@@ -402,13 +421,13 @@ def profile_filename_from_name(name):
     if not normalized:
         normalized = "profile"
     base_name = f"profile_{normalized}.json"
-    path = os.path.join(BASE_DIR, base_name)
+    path = os.path.join(CONFIG_DIR, base_name)
     if not os.path.exists(path):
         return base_name
     index = 1
     while True:
         candidate = f"profile_{normalized}_{index}.json"
-        if not os.path.exists(os.path.join(BASE_DIR, candidate)):
+        if not os.path.exists(os.path.join(CONFIG_DIR, candidate)):
             return candidate
         index += 1
 
@@ -540,6 +559,7 @@ def profile():
         "audio": "copy",
         "preset": "medium",
         "movflags": "",
+        "cpu_used": "0",
         "other_input_options": "",
         "other_output_options": "",
     }
@@ -555,6 +575,7 @@ def profile():
         audio = request.form.get("audio", "copy")
         preset = request.form.get("preset", "medium")
         movflags = request.form.get("movflags", "").strip()
+        cpu_used = request.form.get("cpu_used", "0").strip()
         other_input_options = request.form.get("other_input_options", "").strip()
         other_output_options = request.form.get("other_output_options", "").strip()
 
@@ -566,7 +587,7 @@ def profile():
                     profile_file = selected_file
                 else:
                     profile_file = profile_filename_from_name(name)
-                profile_path = os.path.join(BASE_DIR, profile_file)
+                profile_path = os.path.join(CONFIG_DIR, profile_file)
                 save_json(profile_path, {
                     "name": name,
                     "audio_bitrate": audio_bitrate,
@@ -576,6 +597,7 @@ def profile():
                     "audio": audio,
                     "preset": preset,
                     "movflags": movflags,
+                    "cpu_used": cpu_used,
                     "other_input_options": other_input_options,
                     "other_output_options": other_output_options,
                 })
@@ -583,7 +605,7 @@ def profile():
                 return redirect(url_for("profile", profile_file=profile_file))
         elif action == "delete":
             if selected_file:
-                profile_path = os.path.join(BASE_DIR, selected_file)
+                profile_path = os.path.join(CONFIG_DIR, selected_file)
                 if os.path.exists(profile_path):
                     os.remove(profile_path)
                     message = "Profile deleted."
