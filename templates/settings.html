@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+  <h1 class="page-heading">Settings</h1>
+  {% if message %}
+    <div class="message">{{ message }}</div>
+  {% endif %}
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+  <form method="post">
+    <fieldset>
+      <label>
+        Server port
+        <input type="text" name="port" value="{{ settings.port }}" placeholder="5000" />
+      </label>
+      <label>
+        Media directory
+        <input type="text" name="media_dir" value="{{ settings.media_dir }}" placeholder="/tmp/media" />
+      </label>
+      <label>
+        Output directory
+        <input type="text" name="output_dir" value="{{ settings.output_dir }}" placeholder="Leave empty to use the input file directory" />
+      </label>
+      <label>
+        <input type="checkbox" name="debug" value="1" {% if settings.debug %}checked{% endif %} /> Debug mode (print command only)
+      </label>
+      <p class="small-note">Changing the port will update the saved configuration, but the server must be restarted to use the new port.</p>
+    </fieldset>
+    <div class="button-row">
+      <button type="submit" name="action" value="save">Save settings</button>
+      <button type="submit" name="action" value="restart">Restart server</button>
+    </div>
+  </form>
+{% endblock %}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Shell App{% endblock %}</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 24px; max-width: 1400px; margin: auto; }
+    nav { margin-bottom: 24px; }
+    nav a { margin-right: 18px; color: #0366d6; text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    .page-heading { margin-top: 0; }
+    .button-row { margin-top: 18px; }
+    button { padding: 10px 16px; background: #0366d6; color: #fff; border: none; cursor: pointer; }
+    button:hover { background: #024c9f; }
+    input[type="text"], select, textarea { width: 100%; max-width: 100%; padding: 8px; margin-top: 4px; }
+    fieldset { margin-bottom: 20px; padding: 18px; border: 1px solid #ccc; }
+    label { display: block; margin-bottom: 10px; }
+    .message { color: #006600; margin-bottom: 14px; }
+    .error { color: #b00020; margin-bottom: 14px; }
+    .small-note { font-size: 0.95rem; color: #333; }
+    .app-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px 320px 320px; gap: 24px; align-items: start; }
+    .output-box { white-space: pre-wrap; background: #f6f8fa; border: 1px solid #ddd; padding: 12px; margin-top: 10px; }
+    .sidebar, .preview-pane, .status-pane, .queue-pane, .log-pane { border: 1px solid #ccc; padding: 18px; background: #fff; }
+    .sidebar h2, .preview-pane h2, .status-pane h2, .queue-pane h2, .log-pane h2 { margin-top: 0; }
+    .media-file { display: block; margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
+    .media-file:hover { background: #f6f8fa; }
+    .media-file input { margin-right: 10px; }
+    .file-meta { color: #555; font-size: 0.9rem; }
+    .note { font-size: 0.95rem; color: #333; margin-bottom: 12px; }
+    .preview-box { white-space: pre-wrap; background: #f9fafb; border: 1px solid #ddd; padding: 12px; margin-top: 10px; min-height: 240px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="{{ url_for('index') }}">Home</a>
+    <a href="{{ url_for('settings') }}">Settings</a>
+    <a href="{{ url_for('profile') }}">Profiles</a>
+  </nav>
+  {% block content %}{% endblock %}
+</body>
+</html>

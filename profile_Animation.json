@@ -1,0 +1,12 @@
+{
+  "name": "Animation",
+  "audio_bitrate": "192k",
+  "description": "",
+  "encoder": "h264",
+  "crf": "22",
+  "audio": "aac",
+  "preset": "slower",
+  "movflags": "+faststart",
+  "other_input_options": "",
+  "other_output_options": "-tune animation"
+}

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Profiles{% endblock %}
+{% block content %}
+  <h1 class="page-heading">Profiles</h1>
+  {% if message %}
+    <div class="message">{{ message }}</div>
+  {% endif %}
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+  <form method="post" id="profile-form">
+    <fieldset>
+      <label>
+        Saved profile
+        <select name="profile_file" id="profile-file">
+          <option value="" {% if not selected_file %}selected{% endif %}>NEW</option>
+          {% for profile in profiles %}
+            <option value="{{ profile.file }}" {% if selected_file == profile.file %}selected{% endif %}>{{ profile.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Name
+        <input type="text" name="name" id="profile-name" value="{{ current_profile.name }}" />
+      </label>
+      <label>
+        Encoder
+        <select name="encoder" id="profile-encoder">
+          <option value="h264" {% if current_profile.encoder == 'h264' %}selected{% endif %}>h264</option>
+          <option value="h265" {% if current_profile.encoder == 'h265' %}selected{% endif %}>h265</option>
+          <option value="av1" {% if current_profile.encoder == 'av1' %}selected{% endif %}>av1</option>
+        </select>
+      </label>
+      <label>
+        CRF
+        <input type="number" name="crf" id="profile-crf" value="{{ current_profile.crf }}" min="0" max="51" />
+      </label>
+      <label>
+        Audio
+        <select name="audio" id="profile-audio">
+          <option value="copy" {% if current_profile.audio == 'copy' %}selected{% endif %}>copy</option>
+          <option value="aac" {% if current_profile.audio == 'aac' %}selected{% endif %}>aac</option>
+          <option value="mp3" {% if current_profile.audio == 'mp3' %}selected{% endif %}>mp3</option>
+        </select>
+      </label>
+      <label>
+        Audio bitrate
+        <input type="text" name="audio_bitrate" id="profile-audio-bitrate" value="{{ current_profile.audio_bitrate }}" placeholder="e.g. 192k" />
+      </label>
+      <label>
+        Preset
+        <select name="preset" id="profile-preset">
+          <option value="faster" {% if current_profile.preset == 'faster' %}selected{% endif %}>faster</option>
+          <option value="fast" {% if current_profile.preset == 'fast' %}selected{% endif %}>fast</option>
+          <option value="medium" {% if current_profile.preset == 'medium' %}selected{% endif %}>medium</option>
+          <option value="slow" {% if current_profile.preset == 'slow' %}selected{% endif %}>slow</option>
+          <option value="slower" {% if current_profile.preset == 'slower' %}selected{% endif %}>slower</option>
+          <option value="veryslow" {% if current_profile.preset == 'veryslow' %}selected{% endif %}>veryslow</option>
+        </select>
+      </label>
+      <label>
+        movflags
+        <input type="text" name="movflags" id="profile-movflags" value="{{ current_profile.movflags }}" placeholder="e.g. +faststart" />
+      </label>
+      <label>
+        Other input options
+        <input type="text" name="other_input_options" id="profile-other-input-options" value="{{ current_profile.other_input_options }}" />
+      </label>
+      <label>
+        Other output options
+        <input type="text" name="other_output_options" id="profile-other-output-options" value="{{ current_profile.other_output_options }}" />
+      </label>
+      <label>
+        Description
+        <textarea name="description" id="profile-description" rows="5">{{ current_profile.description }}</textarea>
+      </label>
+    </fieldset>
+    <div class="button-row">
+      <button type="submit" name="action" value="save">Save</button>
+      <button type="submit" name="action" value="delete" {% if not selected_file %}disabled{% endif %}>Delete</button>
+    </div>
+  </form>
+
+  <script>
+    document.getElementById('profile-file').addEventListener('change', function() {
+      var fileName = this.value;
+      if (!fileName) {
+        document.getElementById('profile-name').value = '';
+        document.getElementById('profile-audio-bitrate').value = '';
+        document.getElementById('profile-description').value = '';
+        document.getElementById('profile-encoder').value = 'h264';
+        document.getElementById('profile-crf').value = '';
+        document.getElementById('profile-audio').value = 'copy';
+        document.getElementById('profile-preset').value = 'medium';
+        document.getElementById('profile-movflags').value = '';
+        document.getElementById('profile-other-input-options').value = '';
+        document.getElementById('profile-other-output-options').value = '';
+        return;
+      }
+      fetch('/profile-data?file=' + encodeURIComponent(fileName))
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          if (data.error) {
+            alert('Could not load profile: ' + data.error);
+            return;
+          }
+          document.getElementById('profile-name').value = data.name || '';
+          document.getElementById('profile-audio-bitrate').value = data.audio_bitrate || '';
+          document.getElementById('profile-description').value = data.description || '';
+          document.getElementById('profile-encoder').value = data.encoder || 'h264';
+          document.getElementById('profile-crf').value = data.crf || '';
+          document.getElementById('profile-audio').value = data.audio || 'copy';
+          document.getElementById('profile-preset').value = data.preset || 'medium';
+          document.getElementById('profile-movflags').value = data.movflags || '';
+          document.getElementById('profile-other-input-options').value = data.other_input_options || '';
+          document.getElementById('profile-other-output-options').value = data.other_output_options || '';
+        })
+        .catch(function(err) {
+          alert('Profile load failed: ' + err);
+        });
+    });
+  </script>
+{% endblock %}

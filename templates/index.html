@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Shell Form App{% endblock %}
+{% block content %}
+  <h1 class="page-heading">Shell Command Form</h1>
+  <form class="app-grid" method="post">
+    <div class="main-pane">
+      <fieldset>
+        <legend>Command selection</legend>
+        <label>
+          Profile
+          <select name="selected_profile">
+            <option value="---" {% if inputs.selected_profile == '---' %}selected{% endif %}>---</option>
+            {% for profile in profiles %}
+              <option value="{{ profile.file }}" {% if inputs.selected_profile == profile.file %}selected{% endif %}>{{ profile.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Nice
+          <input type="number" name="nice" value="{{ inputs.nice }}" placeholder="0" min="-20" max="19" />
+        </label>
+        <label>
+          Other input options
+          <input type="text" name="other_input_options" value="{{ inputs.other_input_options }}" placeholder="Additional input options" />
+        </label>
+        <label>
+          Other output options
+          <input type="text" name="other_output_options" value="{{ inputs.other_output_options }}" placeholder="Additional output options" />
+        </label>
+        <label>
+          Output file name
+          <input type="text" name="output_file_name" value="{{ inputs.output_file_name }}" placeholder="e.g. result.mp4" />
+        </label>
+        <p class="note">Run Command builds and queues an ffmpeg job from the selected file and profile.</p>
+        <button type="submit" name="action" value="queue">Run command</button>
+      </fieldset>
+
+      {% if error %}
+        <div class="error"><strong>Error:</strong> {{ error }}</div>
+      {% endif %}
+
+      {% if output %}
+        <div class="output-box"><strong>Output:</strong>
+          <pre>{{ output }}</pre>
+        </div>
+      {% endif %}
+    </div>
+
+    <aside class="sidebar">
+      <h2>Media files</h2>
+      {% if media_files %}
+        {% for file in media_files %}
+          <label class="media-file">
+            <input type="radio" name="selected_file" value="{{ file.name }}" {% if inputs.selected_file == file.name %}checked{% endif %} />
+            <strong>{{ file.name }}</strong>
+            <div class="file-meta">{{ file.size }} bytes</div>
+          </label>
+        {% endfor %}
+      {% else %}
+        <p>No files found in <code>{{ settings.media_dir }}</code>.</p>
+      {% endif %}
+    </aside>
+
+    <aside class="preview-pane">
+      <h2>Preview</h2>
+      <div class="preview-box" id="preview-box">
+        {% if preview_content %}
+          <pre id="preview-content">{{ preview_content }}</pre>
+        {% else %}
+          <pre id="preview-content">Click a file to preview its contents.</pre>
+        {% endif %}
+      </div>
+    </aside>
+
+    <aside class="status-pane">
+      <h2>Running command</h2>
+      <p><strong>Command:</strong> <span id="current-task-command">{{ current_task.command or '—' }}</span></p>
+      <p><strong>Status:</strong> <span id="current-task-status">{{ current_task.status }}</span></p>
+      <p><strong>Last output line:</strong></p>
+      <div class="preview-box" id="current-task-last-line">{{ current_task.last_line or 'No output yet.' }}</div>
+      {% if current_task.status in ['running', 'stopping'] %}
+        <button type="submit" name="action" value="stop" id="stop-command-button">Stop command</button>
+      {% else %}
+        <button type="submit" name="action" value="stop" id="stop-command-button" style="display:none;">Stop command</button>
+      {% endif %}
+    </aside>
+
+    <aside class="queue-pane">
+      <h2>Queue</h2>
+      <ol id="queue-items">
+        {% for item in queue_items %}
+          <li>{{ item.command }} ({{ item.id }}) <button type="submit" name="remove_queue_item" value="{{ item.id }}">Remove</button></li>
+        {% endfor %}
+      </ol>
+      {% if not queue_items %}
+        <p id="queue-empty-message">The queue is empty.</p>
+      {% else %}
+        <p id="queue-empty-message" style="display:none;">The queue is empty.</p>
+      {% endif %}
+    </aside>
+
+    <aside class="log-pane" style="grid-column: span 4;">
+      <h2>Command log</h2>
+      <pre id="log-box" class="preview-box" style="max-height: 320px; overflow: auto; white-space: pre-wrap;">
+        {% if log_items %}{{ log_items | join("\n") }}{% else %}No log entries yet.{% endif %}
+      </pre>
+    </aside>
+  </form>
+
+  <script>
+    document.querySelectorAll('.media-file input[type="radio"]').forEach(function(input) {
+      input.addEventListener('change', function() {
+        var fileName = this.value;
+        fetch('/preview?file=' + encodeURIComponent(fileName))
+          .then(function(response) { return response.json(); })
+          .then(function(data) {
+            var preview = document.getElementById('preview-content');
+            if (data.error) {
+              preview.textContent = 'Error: ' + data.error;
+            } else {
+              preview.textContent = data.content;
+            }
+          })
+          .catch(function(err) {
+            document.getElementById('preview-content').textContent = 'Preview error: ' + err;
+          });
+      });
+    });
+
+    // Auto-refresh log pane every 5 seconds
+    function refreshLog() {
+      fetch('/log')
+        .then(function(response) {
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+          return response.json();
+        })
+        .then(function(data) {
+          var logBox = document.querySelector('.log-pane pre');
+          if (logBox && data.log) {
+            logBox.textContent = data.log.join("\n");
+            logBox.scrollTop = logBox.scrollHeight;
+          }
+
+          if (data.current_task) {
+            document.getElementById('current-task-command').textContent = data.current_task.command || '—';
+            document.getElementById('current-task-status').textContent = data.current_task.status || 'idle';
+            document.getElementById('current-task-last-line').textContent = data.current_task.last_line || 'No output yet.';
+            var stopButton = document.getElementById('stop-command-button');
+            if (stopButton) {
+              stopButton.style.display = data.current_task.status === 'running' || data.current_task.status === 'stopping' ? 'inline-block' : 'none';
+            }
+          }
+
+          if (data.queue) {
+            var queueItems = document.getElementById('queue-items');
+            var emptyMessage = document.getElementById('queue-empty-message');
+            if (queueItems) {
+              if (data.queue.length === 0) {
+                queueItems.innerHTML = '';
+                if (emptyMessage) emptyMessage.style.display = 'block';
+              } else {
+                queueItems.innerHTML = data.queue.map(function(item) {
+                  return '<li>' + item.command + ' (' + item.id + ') <button type="submit" name="remove_queue_item" value="' + item.id + '">Remove</button></li>';
+                }).join('');
+                if (emptyMessage) emptyMessage.style.display = 'none';
+              }
+            }
+          }
+        })
+        .catch(function(err) {
+          console.error('Log refresh error:', err);
+        });
+    }
+
+    // Start polling immediately and then every 5 seconds
+    refreshLog();
+    setInterval(refreshLog, 5000);
+  </script>
+{% endblock %}
