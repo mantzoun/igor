@@ -22,4 +22,8 @@ COPY requirements.txt ./
 
 EXPOSE 5000
 
-CMD ["python", "igor.py"]
+# Make the app directory writable for a non-root UID (1000) so task output files
+# can be created when the container runs as that user.
+RUN chown -R 1000:1000 /app || true
+
+CMD ["sh", "-c", "python igor.py > /dev/null"]
