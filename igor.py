@@ -14,6 +14,7 @@ app = Flask(__name__)
 import glob
 import json
 import re
+import signal
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 CONFIG_DIR = os.path.abspath("/config")
@@ -106,7 +107,26 @@ def stop_current_task():
         if CURRENT_TASK["status"] != "running" or CURRENT_PROCESS is None:
             return False
         try:
-            CURRENT_PROCESS.terminate()
+            # Try graceful termination first
+            try:
+                CURRENT_PROCESS.terminate()
+            except Exception:
+                pass
+
+            # Wait briefly for the process to exit
+            try:
+                CURRENT_PROCESS.wait(timeout=2)
+            except Exception:
+                # If still running, try to kill the whole process group (requires ffmpeg started in its own session)
+                try:
+                    os.killpg(CURRENT_PROCESS.pid, signal.SIGKILL)
+                except Exception:
+                    # Fallback to kill the process directly
+                    try:
+                        CURRENT_PROCESS.kill()
+                    except Exception:
+                        pass
+
             CURRENT_TASK["status"] = "stopping"
             CURRENT_TASK["last_line"] = "Stopping command..."
             log_event(f"Command {CURRENT_TASK['command']} (task {CURRENT_TASK['id']}) stopped by user")
@@ -303,6 +323,7 @@ def _run_queue_worker():
                     stdout=out_f,
                     stderr=subprocess.STDOUT,
                     text=True,
+                    start_new_session=True,
                 )
                 with debug_lock("_run_queue_worker_set_current_process"):
                     global CURRENT_PROCESS
