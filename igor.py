@@ -44,6 +44,7 @@ DEFAULT_PROFILE = {
     "preset": "medium",
     "movflags": "",
     "cpu_used": "0",
+    "downmix": False,
     "other_input_options": "",
     "other_output_options": "",
 }
@@ -216,10 +217,12 @@ def build_ffmpeg_task(selected_file, profile_file, nice_value, home_input_opts, 
     audio_bitrate = profile.get("audio_bitrate", "")
     if audio_bitrate and audio != "copy":
         args.extend(["-b:a", str(audio_bitrate)])
+        if profile.get("downmix"):
+            args.extend(["-ac", "2"])
 
-        movflags = str(profile.get("movflags", "")).strip()
-        if movflags:
-            args.extend(["-movflags", movflags])
+    movflags = str(profile.get("movflags", "")).strip()
+    if movflags:
+        args.extend(["-movflags", movflags])
     elif encoder == "av1":
         # For AV1 (libaom-av1) use cpu-used instead of preset/crf/movflags
         cpu_used_val = profile.get("cpu_used", "0")
@@ -581,6 +584,7 @@ def profile():
         "preset": "medium",
         "movflags": "",
         "cpu_used": "0",
+        "downmix": False,
         "other_input_options": "",
         "other_output_options": "",
     }
@@ -597,6 +601,7 @@ def profile():
         preset = request.form.get("preset", "medium")
         movflags = request.form.get("movflags", "").strip()
         cpu_used = request.form.get("cpu_used", "0").strip()
+        downmix = bool(request.form.get("downmix"))
         other_input_options = request.form.get("other_input_options", "").strip()
         other_output_options = request.form.get("other_output_options", "").strip()
 
@@ -619,6 +624,7 @@ def profile():
                     "preset": preset,
                     "movflags": movflags,
                     "cpu_used": cpu_used,
+                    "downmix": downmix,
                     "other_input_options": other_input_options,
                     "other_output_options": other_output_options,
                 })

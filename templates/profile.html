@@ -48,6 +48,10 @@
         <input type="text" name="audio_bitrate" id="profile-audio-bitrate" value="{{ current_profile.audio_bitrate }}" placeholder="e.g. 192k" />
       </label>
       <label>
+        <input type="checkbox" name="downmix" id="profile-downmix" value="1" {% if current_profile.downmix %}checked{% endif %} />
+        Downmix to stereo when audio is not copy
+      </label>
+      <label>
         Preset
         <select name="preset" id="profile-preset">
           <option value="faster" {% if current_profile.preset == 'faster' %}selected{% endif %}>faster</option>
@@ -95,6 +99,7 @@
         document.getElementById('profile-encoder').value = 'h264';
         document.getElementById('profile-crf').value = '';
         document.getElementById('profile-audio').value = 'copy';
+        document.getElementById('profile-downmix').checked = false;
         document.getElementById('profile-preset').value = 'medium';
         document.getElementById('profile-movflags').value = '';
         document.getElementById('profile-cpu-used').value = '0';
@@ -115,6 +120,7 @@
           document.getElementById('profile-encoder').value = data.encoder || 'h264';
           document.getElementById('profile-crf').value = data.crf || '';
           document.getElementById('profile-audio').value = data.audio || 'copy';
+          document.getElementById('profile-downmix').checked = !!data.downmix;
           document.getElementById('profile-preset').value = data.preset || 'medium';
           document.getElementById('profile-movflags').value = data.movflags || '';
           document.getElementById('profile-cpu-used').value = (typeof data.cpu_used !== 'undefined') ? data.cpu_used : '0';
