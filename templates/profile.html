@@ -47,9 +47,9 @@
         Audio bitrate
         <input type="text" name="audio_bitrate" id="profile-audio-bitrate" value="{{ current_profile.audio_bitrate }}" placeholder="e.g. 192k" />
       </label>
-      <label>
+      <label class="checkbox-inline">
         <input type="checkbox" name="downmix" id="profile-downmix" value="1" {% if current_profile.downmix %}checked{% endif %} />
-        Downmix to stereo when audio is not copy
+        <span>Downmix to stereo when audio is not copy</span>
       </label>
       <label>
         Preset
